@@ -45,36 +45,36 @@ with open('./README.md') as readme:
 
 
 setup(
-    name='eth-account',
+    name='platon-account',
     # *IMPORTANT*: Don't manually change the version here. Use `make bump`, as described in readme
-    version='0.5.5',
-    description="""eth-account: Sign Ethereum transactions and messages with local private keys""",
+    version='1.2.1',
+    description="""platon-account: Sign Platon transactions and messages with local private keys""",
     long_description=long_description,
     long_description_content_type='text/markdown',
-    author='The Ethereum Foundation',
-    author_email='snakecharmers@ethereum.org',
-    url='https://github.com/ethereum/eth-account',
+    author='Shinnng',
+    author_email='Shinnng@outlook.com',
+    url='https://github.com/platonnetwork/platon-account',
     include_package_data=True,
-    package_data={"eth_account": [
+    package_data={"platon_account": [
         "py.typed",
         "hdaccount/wordlist/*.txt",
     ]},
     install_requires=[
         "bitarray>=1.2.1,<1.3.0",
-        "eth-abi>=2.0.0b7,<3",
-        "eth-keyfile>=0.5.0,<0.6.0",
-        "eth-keys>=0.2.1,<0.4.0,!=0.3.2",
-        "eth-rlp>=0.1.2,<2",
-        "eth-utils>=1.3.0,<2",
+        "platon-abi>=1.2.0",
+        "platon-keyfile>=1.2.0",
+        "platon-keys>=1.2.0",
+        "platon-rlp>=1.2.0",
+        "platon-utils>=1.2.0",
         "hexbytes>=0.1.0,<1",
         "rlp>=1.0.0,<3"
     ],
     python_requires='>=3.6, <4',
     extras_require=extras_require,
-    py_modules=['eth_account'],
+    py_modules=['platon_account'],
     license="MIT",
     zip_safe=False,
-    keywords='ethereum',
+    keywords='platon',
     packages=find_packages(exclude=["tests", "tests.*"]),
     classifiers=[
         'Development Status :: 3 - Alpha',

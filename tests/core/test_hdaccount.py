@@ -1,14 +1,14 @@
 import pytest
 
-from eth_utils import (
+from platon_utils import (
     ValidationError,
 )
 
-from eth_account import (
+from platon_account import (
     Account,
 )
-from eth_account.hdaccount import (
-    ETHEREUM_DEFAULT_PATH,
+from platon_account.hdaccount import (
+    PLATON_DEFAULT_PATH,
 )
 
 Account.enable_unaudited_hdwallet_features()
@@ -19,14 +19,14 @@ Account.enable_unaudited_hdwallet_features()
     # https://github.com/trufflesuite/ganache-core/blob/d1cb5318cb3c694743f86f29d74/test/accounts.js
     (
         "into trim cross then helmet popular suit hammer cart shrug oval student",
-        ETHEREUM_DEFAULT_PATH,
+        PLATON_DEFAULT_PATH,
         "0x604a95C9165Bc95aE016a5299dd7d400dDDBEa9A",
     ),
     # Metamask
-    # https://github.com/MetaMask/eth-hd-keyring/blob/79d088e4a73624537e924b3943830526/test/index.js
+    # https://github.com/MetaMask/platon-hd-keyring/blob/79d088e4a73624537e924b3943830526/test/index.js
     (
         "finish oppose decorate face calm tragic certain desk hour urge dinosaur mango",
-        ETHEREUM_DEFAULT_PATH,
+        PLATON_DEFAULT_PATH,
         "0x1c96099350f13D558464eC79B9bE4445AA0eF579",
     ),
     (

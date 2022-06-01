@@ -1,6 +1,6 @@
 import pytest
 
-from eth_account.hdaccount.deterministic import (
+from platon_account.hdaccount.deterministic import (
     HDPath,
 )
 

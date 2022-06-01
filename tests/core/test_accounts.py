@@ -10,13 +10,13 @@ import pytest
 from cytoolz import (
     dissoc,
 )
-from eth_keyfile.keyfile import (
+from platon_keyfile.keyfile import (
     get_default_work_factor_for_kdf,
 )
-from eth_keys import (
+from platon_keys import (
     keys,
 )
-from eth_utils import (
+from platon_utils import (
     is_checksum_address,
     to_bytes,
     to_hex,
@@ -26,17 +26,17 @@ from hexbytes import (
     HexBytes,
 )
 
-from eth_account import (
+from platon_account import (
     Account,
 )
-from eth_account.messages import (
+from platon_account.messages import (
     defunct_hash_message,
     encode_defunct,
     encode_intended_validator,
 )
 
-# from https://github.com/ethereum/tests/blob/3930ca3a9a377107d5792b3e7202f79c688f1a67/BasicTests/txtest.json # noqa: 501
-ETH_TEST_TRANSACTIONS = [
+# from https://github.com/platonnetwork/tests/blob/3930ca3a9a377107d5792b3e7202f79c688f1a67/BasicTests/txtest.json # noqa: 501
+PLATON_TEST_TRANSACTIONS = [
     {
         "chainId": None,
         "key": "c85ef7d79691fe79573b1a7064c19c1a9819ebdbd1faaab1a8ec92344438aaf4",
@@ -191,32 +191,32 @@ def message_encodings(request):
         return {"hexstr": "68656c6c6f20776f726c64"}
 
 
-def test_eth_account_default_kdf(acct, monkeypatch):
-    assert os.getenv('ETH_ACCOUNT_KDF') is None
+def test_platon_account_default_kdf(acct, monkeypatch):
+    assert os.getenv('platon_account_KDF') is None
     assert acct._default_kdf == 'scrypt'
 
-    monkeypatch.setenv('ETH_ACCOUNT_KDF', 'pbkdf2')
-    assert os.getenv('ETH_ACCOUNT_KDF') == 'pbkdf2'
+    monkeypatch.setenv('platon_account_KDF', 'pbkdf2')
+    assert os.getenv('platon_account_KDF') == 'pbkdf2'
 
     import importlib
-    from eth_account import account
+    from platon_account import account
     importlib.reload(account)
     assert account.Account._default_kdf == 'pbkdf2'
 
 
-def test_eth_account_create_variation(acct):
+def test_platon_account_create_variation(acct):
     account1 = acct.create()
     account2 = acct.create()
     assert account1 != account2
 
 
-def test_eth_account_equality(acct, PRIVATE_KEY):
+def test_platon_account_equality(acct, PRIVATE_KEY):
     acct1 = acct.from_key(PRIVATE_KEY)
     acct2 = acct.from_key(PRIVATE_KEY)
     assert acct1 == acct2
 
 
-def test_eth_account_from_key_reproducible(acct, PRIVATE_KEY):
+def test_platon_account_from_key_reproducible(acct, PRIVATE_KEY):
     account1 = acct.from_key(PRIVATE_KEY)
     account2 = acct.from_key(PRIVATE_KEY)
     assert bytes(account1) == PRIVATE_KEY_AS_BYTES
@@ -224,14 +224,14 @@ def test_eth_account_from_key_reproducible(acct, PRIVATE_KEY):
     assert isinstance(str(account1), str)
 
 
-def test_eth_account_from_key_diverge(acct, PRIVATE_KEY, PRIVATE_KEY_ALT):
+def test_platon_account_from_key_diverge(acct, PRIVATE_KEY, PRIVATE_KEY_ALT):
     account1 = acct.from_key(PRIVATE_KEY)
     account2 = acct.from_key(PRIVATE_KEY_ALT)
     assert bytes(account2) == PRIVATE_KEY_AS_BYTES_ALT
     assert bytes(account1) != bytes(account2)
 
 
-def test_eth_account_from_key_seed_restrictions(acct):
+def test_platon_account_from_key_seed_restrictions(acct):
     with pytest.raises(ValueError):
         acct.from_key(b'')
     with pytest.raises(ValueError):
@@ -240,7 +240,7 @@ def test_eth_account_from_key_seed_restrictions(acct):
         acct.from_key(b'\xff' * 33)
 
 
-def test_eth_account_from_key_properties(acct, PRIVATE_KEY):
+def test_platon_account_from_key_properties(acct, PRIVATE_KEY):
     account = acct.from_key(PRIVATE_KEY)
     assert callable(account.sign_transaction)
     assert callable(account.sign_message)
@@ -249,7 +249,7 @@ def test_eth_account_from_key_properties(acct, PRIVATE_KEY):
     assert account.key == PRIVATE_KEY_AS_OBJ
 
 
-def test_eth_account_create_properties(acct):
+def test_platon_account_create_properties(acct):
     account = acct.create()
     assert callable(account.sign_transaction)
     assert callable(account.sign_message)
@@ -257,19 +257,19 @@ def test_eth_account_create_properties(acct):
     assert isinstance(account.key, bytes) and len(account.key) == 32
 
 
-def test_eth_account_recover_transaction_example(acct):
+def test_platon_account_recover_transaction_example(acct):
     raw_tx_hex = '0xf8640d843b9aca00830e57e0945b2063246f2191f18f2675cedb8b28102e957458018025a00c753084e5a8290219324c1a3a86d4064ded2d15979b1ea790734aaa2ceaafc1a0229ca4538106819fd3a5509dd383e8fe4b731c6870339556a5c06feb9cf330bb'  # noqa: E501
     from_account = acct.recover_transaction(raw_tx_hex)
     assert from_account == '0xFeC2079e80465cc8C687fFF9EE6386ca447aFec4'
 
 
-def test_eth_account_recover_transaction_with_literal(acct):
+def test_platon_account_recover_transaction_with_literal(acct):
     raw_tx = 0xf8640d843b9aca00830e57e0945b2063246f2191f18f2675cedb8b28102e957458018025a00c753084e5a8290219324c1a3a86d4064ded2d15979b1ea790734aaa2ceaafc1a0229ca4538106819fd3a5509dd383e8fe4b731c6870339556a5c06feb9cf330bb  # noqa: E501
     from_account = acct.recover_transaction(raw_tx)
     assert from_account == '0xFeC2079e80465cc8C687fFF9EE6386ca447aFec4'
 
 
-def test_eth_account_recover_message(acct):
+def test_platon_account_recover_message(acct):
     v, r, s = (
         28,
         '0xe6ca9bba58c88611fad66a6ce8f996908195593807c4b38bd528d2cff09d4eb3',
@@ -291,7 +291,7 @@ def test_eth_account_recover_message(acct):
     ],
     ids=['test_sig_bytes_standard_v', 'test_sig_bytes_chain_naive_v']
 )
-def test_eth_account_recover_signature_bytes(acct, signature_bytes):
+def test_platon_account_recover_signature_bytes(acct, signature_bytes):
     # found a signature with a leading 0 byte in both r and s
     message = encode_defunct(text='10284')
     from_account = acct.recover_message(message, signature=signature_bytes)
@@ -300,7 +300,7 @@ def test_eth_account_recover_signature_bytes(acct, signature_bytes):
 
 @pytest.mark.parametrize('raw_v', (0, 27))
 @pytest.mark.parametrize('as_hex', (False, True))
-def test_eth_account_recover_vrs(acct, raw_v, as_hex):
+def test_platon_account_recover_vrs(acct, raw_v, as_hex):
     # found a signature with a leading 0 byte in both r and s
     raw_r, raw_s = (
         143748089818580655331728101695676826715814583506606354117109114714663470502,
@@ -335,7 +335,7 @@ def test_eth_account_recover_vrs(acct, raw_v, as_hex):
     ],
     ids=['message_to_sign', 'hexstr_as_text', 'hello_world']
 )
-def test_eth_account_hash_message_text(message, expected):
+def test_platon_account_hash_message_text(message, expected):
     assert defunct_hash_message(text=message) == expected
 
 
@@ -353,7 +353,7 @@ def test_eth_account_hash_message_text(message, expected):
     ],
     ids=['hexbytes_1', 'hexbytes_2']
 )
-def test_eth_account_hash_message_hexstr(acct, message, expected):
+def test_platon_account_hash_message_hexstr(acct, message, expected):
     assert defunct_hash_message(hexstr=message) == expected
 
 
@@ -435,9 +435,9 @@ def test_sign_message_against_sign_hash_as_hex(keyed_acct, message_bytes):
         ),
 
     ),
-    ids=['web3js_hex_str_example', 'web3js_eth_keys.datatypes.PrivateKey_example', '31byte_r_and_s'],  # noqa: E501
+    ids=['web3js_hex_str_example', 'web3js_platon_keys.datatypes.PrivateKey_example', '31byte_r_and_s'],  # noqa: E501
 )
-def test_eth_account_sign(acct, message, key, expected_bytes, expected_hash, v, r, s, signature):
+def test_platon_account_sign(acct, message, key, expected_bytes, expected_hash, v, r, s, signature):
     signable = encode_defunct(text=message)
     signed = acct.sign_message(signable, private_key=key)
     assert signed.messageHash == signed['messageHash'] == expected_hash
@@ -450,7 +450,7 @@ def test_eth_account_sign(acct, message, key, expected_bytes, expected_hash, v, 
     assert account.sign_message(signable) == signed
 
 
-def test_eth_valid_account_address_sign_data_with_intended_validator(acct, message_encodings):
+def test_platon_valid_account_address_sign_data_with_intended_validator(acct, message_encodings):
     account = acct.create()
     signable = encode_intended_validator(
         account.address,
@@ -463,7 +463,7 @@ def test_eth_valid_account_address_sign_data_with_intended_validator(acct, messa
     assert new_addr == account.address
 
 
-def test_eth_short_account_address_sign_data_with_intended_validator(acct, message_encodings):
+def test_platon_short_account_address_sign_data_with_intended_validator(acct, message_encodings):
     account = acct.create()
 
     address_in_bytes = to_bytes(hexstr=account.address)
@@ -478,7 +478,7 @@ def test_eth_short_account_address_sign_data_with_intended_validator(acct, messa
             )
 
 
-def test_eth_long_account_address_sign_data_with_intended_validator(acct, message_encodings):
+def test_platon_long_account_address_sign_data_with_intended_validator(acct, message_encodings):
     account = acct.create()
 
     address_in_bytes = to_bytes(hexstr=account.address)
@@ -567,9 +567,9 @@ def test_eth_long_account_address_sign_data_with_intended_validator(acct, messag
             1,
         ),
     ),
-    ids=['web3js_hex_str_example', 'web3js_eth_keys.datatypes.PrivateKey_example', '31byte_r_and_s', 'access_list_tx'],  # noqa: E501
+    ids=['web3js_hex_str_example', 'web3js_platon_keys.datatypes.PrivateKey_example', '31byte_r_and_s', 'access_list_tx'],  # noqa: E501
 )
-def test_eth_account_sign_transaction(acct, txn, private_key, expected_raw_tx, tx_hash, r, s, v):
+def test_platon_account_sign_transaction(acct, txn, private_key, expected_raw_tx, tx_hash, r, s, v):
     signed = acct.sign_transaction(txn, private_key)
     assert signed.r == signed['r'] == r
     assert signed.s == signed['s'] == s
@@ -583,9 +583,9 @@ def test_eth_account_sign_transaction(acct, txn, private_key, expected_raw_tx, t
 
 @pytest.mark.parametrize(
     'transaction',
-    ETH_TEST_TRANSACTIONS,
+    PLATON_TEST_TRANSACTIONS,
 )
-def test_eth_account_sign_transaction_from_eth_test(acct, transaction):
+def test_platon_account_sign_transaction_from_platon_test(acct, transaction):
     expected_raw_txn = transaction['signed']
     key = transaction['key']
 
@@ -595,7 +595,7 @@ def test_eth_account_sign_transaction_from_eth_test(acct, transaction):
     # There is some ambiguity about whether `r` will always be deterministically
     # generated from the transaction hash and private key, mostly due to code
     # author's ignorance. The example test fixtures and implementations seem to agree, so far.
-    # See ecdsa_raw_sign() in /eth_keys/backends/native/ecdsa.py
+    # See ecdsa_raw_sign() in /platon_keys/backends/native/ecdsa.py
     signed = acct.sign_transaction(unsigned_txn, key)
     assert signed.r == to_int(hexstr=expected_raw_txn[-130:-66])
 
@@ -606,9 +606,9 @@ def test_eth_account_sign_transaction_from_eth_test(acct, transaction):
 
 @pytest.mark.parametrize(
     'transaction',
-    ETH_TEST_TRANSACTIONS,
+    PLATON_TEST_TRANSACTIONS,
 )
-def test_eth_account_recover_transaction_from_eth_test(acct, transaction):
+def test_platon_account_recover_transaction_from_platon_test(acct, transaction):
     raw_txn = transaction['signed']
     expected_sender = acct.from_key(transaction['key']).address
     assert acct.recover_transaction(raw_txn) == expected_sender
@@ -683,14 +683,14 @@ def get_encrypt_test_params():
     get_encrypt_test_params(),
     ids=[
         'hex_str',
-        'eth_keys.datatypes.PrivateKey',
+        'platon_keys.datatypes.PrivateKey',
         'hex_str_provided_kdf',
         'hex_str_default_kdf_provided_iterations',
         'hex_str_pbkdf2_provided_iterations',
         'hex_str_scrypt_provided_iterations',
     ]
 )
-def test_eth_account_encrypt(
+def test_platon_account_encrypt(
         acct,
         private_key,
         password,
@@ -729,14 +729,14 @@ def test_eth_account_encrypt(
     get_encrypt_test_params(),
     ids=[
         'hex_str',
-        'eth_keys.datatypes.PrivateKey',
+        'platon_keys.datatypes.PrivateKey',
         'hex_str_provided_kdf',
         'hex_str_default_kdf_provided_iterations',
         'hex_str_pbkdf2_provided_iterations',
         'hex_str_scrypt_provided_iterations',
     ]
 )
-def test_eth_account_prepared_encrypt(
+def test_platon_account_prepared_encrypt(
         acct,
         private_key,
         password,

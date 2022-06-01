@@ -1,12 +1,12 @@
 from cytoolz import (
     pipe,
 )
-from eth_utils import (
+from platon_utils import (
     to_bytes,
     to_int,
 )
 
-from eth_account._utils.legacy_transactions import (
+from platon_account._utils.legacy_transactions import (
     ChainAwareUnsignedTransaction,
     Transaction,
     UnsignedTransaction,
@@ -14,7 +14,7 @@ from eth_account._utils.legacy_transactions import (
     serializable_unsigned_transaction_from_dict,
     strip_signature,
 )
-from eth_account._utils.typed_transactions import (
+from platon_account._utils.typed_transactions import (
     TypedTransaction,
 )
 
@@ -27,7 +27,7 @@ INTENDED_VALIDATOR_SIGN_VERSION = b'\x00'  # Hex value 0x00
 STRUCTURED_DATA_SIGN_VERSION = b'\x01'  # Hex value 0x01
 
 
-def sign_transaction_dict(eth_key, transaction_dict):
+def sign_transaction_dict(platon_key, transaction_dict):
     # generate RLP-serializable transaction, with defaults filled
     unsigned_transaction = serializable_unsigned_transaction_from_dict(transaction_dict)
 
@@ -36,15 +36,15 @@ def sign_transaction_dict(eth_key, transaction_dict):
     # detect chain
     if isinstance(unsigned_transaction, UnsignedTransaction):
         chain_id = None
-        (v, r, s) = sign_transaction_hash(eth_key, transaction_hash, chain_id)
+        (v, r, s) = sign_transaction_hash(platon_key, transaction_hash, chain_id)
     elif isinstance(unsigned_transaction, Transaction):
         chain_id = unsigned_transaction.v
-        (v, r, s) = sign_transaction_hash(eth_key, transaction_hash, chain_id)
+        (v, r, s) = sign_transaction_hash(platon_key, transaction_hash, chain_id)
     elif isinstance(unsigned_transaction, TypedTransaction):
         # Each transaction type dictates its payload, and consequently,
         # all the funky logic around the `v` signature field is both obsolete && incorrect.
         # We want to obtain the raw `v` and delegate to the transaction type itself.
-        (v, r, s) = eth_key.sign_msg_hash(transaction_hash).vrs
+        (v, r, s) = platon_key.sign_msg_hash(transaction_hash).vrs
     else:
         # Cannot happen, but better for code to be defensive + self-documenting.
         raise TypeError("unknown Transaction object: %s" % type(unsigned_transaction))
@@ -65,7 +65,7 @@ def hash_of_signed_transaction(txn_obj):
     4. Take the hash of the serialized, unsigned, chain-aware transaction
 
     Chain ID inference and annotation is according to EIP-155
-    See details at https://github.com/ethereum/EIPs/blob/master/EIPS/eip-155.md
+    See details at https://github.com/platonnetwork/EIPs/blob/master/EIPS/eip-155.md
 
     :return: the hash of the provided transaction, to be signed
     """
@@ -98,9 +98,9 @@ def extract_chain_id(raw_v):
         return (chain_id, v_bit + V_OFFSET)
 
 
-def to_standard_signature_bytes(ethereum_signature_bytes):
-    rs = ethereum_signature_bytes[:-1]
-    v = to_int(ethereum_signature_bytes[-1])
+def to_standard_signature_bytes(platon_signature_bytes):
+    rs = platon_signature_bytes[:-1]
+    v = to_int(platon_signature_bytes[-1])
     standard_v = to_standard_v(v)
     return rs + to_bytes(standard_v)
 
@@ -112,7 +112,7 @@ def to_standard_v(enhanced_v):
     return v_standard
 
 
-def to_eth_v(v_raw, chain_id=None):
+def to_platon_v(v_raw, chain_id=None):
     if chain_id is None:
         v = v_raw + V_OFFSET
     else:
@@ -123,11 +123,11 @@ def to_eth_v(v_raw, chain_id=None):
 def sign_transaction_hash(account, transaction_hash, chain_id):
     signature = account.sign_msg_hash(transaction_hash)
     (v_raw, r, s) = signature.vrs
-    v = to_eth_v(v_raw, chain_id)
+    v = to_platon_v(v_raw, chain_id)
     return (v, r, s)
 
 
-def _pad_to_eth_word(bytes_val):
+def _pad_to_platon_word(bytes_val):
     return bytes_val.rjust(32, b'\0')
 
 
@@ -135,13 +135,13 @@ def to_bytes32(val):
     return pipe(
         val,
         to_bytes,
-        _pad_to_eth_word,
+        _pad_to_platon_word,
     )
 
 
 def sign_message_hash(key, msg_hash):
     signature = key.sign_msg_hash(msg_hash)
     (v_raw, r, s) = signature.vrs
-    v = to_eth_v(v_raw)
-    eth_signature_bytes = to_bytes32(r) + to_bytes32(s) + to_bytes(v)
-    return (v, r, s, eth_signature_bytes)
+    v = to_platon_v(v_raw)
+    platon_signature_bytes = to_bytes32(r) + to_bytes32(s) + to_bytes(v)
+    return (v, r, s, platon_signature_bytes)

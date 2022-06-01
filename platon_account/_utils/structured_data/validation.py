@@ -1,6 +1,6 @@
 import re
 
-from eth_utils import (
+from platon_utils import (
     ValidationError,
 )
 

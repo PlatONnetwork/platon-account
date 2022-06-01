@@ -10,10 +10,10 @@ from cytoolz import (
     partial,
     pipe,
 )
-from eth_rlp import (
+from platon_rlp import (
     HashableRLP,
 )
-from eth_utils.curried import (
+from platon_utils.curried import (
     apply_formatters_to_dict,
 )
 import rlp
@@ -33,6 +33,7 @@ from .validation import (
 
 
 def serializable_unsigned_transaction_from_dict(transaction_dict):
+
     if 'type' in transaction_dict:
         # We delegate to TypedTransaction, which will carry out validation & formatting.
         return TypedTransaction.from_dict(transaction_dict)
@@ -119,6 +120,7 @@ def fill_transaction_defaults(transaction):
     return merge(TRANSACTION_DEFAULTS, transaction)
 
 
+# todo: 检查to地址
 UNSIGNED_TRANSACTION_FIELDS = (
     ('nonce', big_endian_int),
     ('gasPrice', big_endian_int),

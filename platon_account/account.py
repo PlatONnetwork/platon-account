@@ -8,18 +8,18 @@ import warnings
 from cytoolz import (
     dissoc,
 )
-from eth_keyfile import (
+from platon_keyfile import (
     create_keyfile_json,
     decode_keyfile_json,
 )
-from eth_keys import (
+from platon_keys import (
     KeyAPI,
     keys,
 )
-from eth_keys.exceptions import (
+from platon_keys.exceptions import (
     ValidationError,
 )
-from eth_utils.curried import (
+from platon_utils.curried import (
     combomethod,
     hexstr_if_str,
     is_dict,
@@ -32,48 +32,50 @@ from hexbytes import (
     HexBytes,
 )
 
-from eth_account._utils.legacy_transactions import (
+from platon_account._utils.legacy_transactions import (
     Transaction,
     vrs_from,
 )
-from eth_account._utils.signing import (
+from platon_account._utils.signing import (
     hash_of_signed_transaction,
     sign_message_hash,
     sign_transaction_dict,
     to_standard_signature_bytes,
     to_standard_v,
 )
-from eth_account._utils.typed_transactions import (
+from platon_account._utils.typed_transactions import (
     TypedTransaction,
 )
-from eth_account.datastructures import (
+from platon_account.datastructures import (
     SignedMessage,
     SignedTransaction,
 )
-from eth_account.hdaccount import (
-    ETHEREUM_DEFAULT_PATH,
+from platon_account.hdaccount import (
+    PLATON_DEFAULT_PATH,
     generate_mnemonic,
     key_from_seed,
     seed_from_mnemonic,
 )
-from eth_account.messages import (
+from platon_account.messages import (
     SignableMessage,
     _hash_eip191_message,
 )
-from eth_account.signers.local import (
+from platon_account.signers.local import (
     LocalAccount,
 )
+
+DEFAULT_HRP = 'lat'
 
 
 class Account(object):
     """
-    The primary entry point for working with Ethereum private keys.
+    The primary entry point for working with Platon private keys.
 
-    It does **not** require a connection to an Ethereum node.
+    It does **not** require a connection to an Platon node.
     """
     _keys = keys
 
-    _default_kdf = os.getenv('ETH_ACCOUNT_KDF', 'scrypt')
+    _default_kdf = os.getenv('platon_account_KDF', 'scrypt')
 
     # Enable unaudited features (off by default)
     _use_unaudited_hdwallet_features = False
@@ -86,20 +88,21 @@ class Account(object):
         cls._use_unaudited_hdwallet_features = True
 
     @combomethod
-    def create(self, extra_entropy=''):
+    def create(self, extra_entropy='', hrp=DEFAULT_HRP):
         r"""
-        Creates a new private key, and returns it as a :class:`~eth_account.local.LocalAccount`.
+        Creates a new private key, and returns it as a :class:`~platon_account.local.LocalAccount`.
 
         :param extra_entropy: Add extra randomness to whatever randomness your OS can provide
         :type extra_entropy: str or bytes or int
+        :param str hrp: HRP used to generate the bech32 address
         :returns: an object with private key and convenience methods
 
         .. code-block:: python
 
-            >>> from eth_account import Account
-            >>> acct = Account.create('KEYSMASH FJAFJKLDSKF7JKFDJ 1530')
+            >>> from platon_account import Account
+            >>> acct = Account.create('KEYSMASH FJAFJKLDSKF7JKFDJ 1530', 'lat')
             >>> acct.address
-            '0x5ce9454909639D2D17A3F753ce7d93fa0b9aB12E'
+            'lat1qtn552jgfvwwj69ar7afuulvnlg9e4vfwq7zpz5'
             >>> acct.key
             HexBytes('0x8676e9a8c86c8921e922e61e0bb6e9e9689aad4c99082620610b00140e5f21b8')
 
@@ -109,14 +112,14 @@ class Account(object):
         """
         extra_key_bytes = text_if_str(to_bytes, extra_entropy)
         key_bytes = keccak(os.urandom(32) + extra_key_bytes)
-        return self.from_key(key_bytes)
+        return self.from_key(key_bytes, hrp)
 
     @staticmethod
     def decrypt(keyfile_json, password):
         """
         Decrypts a private key.
 
-        The key may have been encrypted using an Ethereum client or :meth:`~Account.encrypt`.
+        The key may have been encrypted using an Platon client or :meth:`~Account.encrypt`.
 
         :param keyfile_json: The encrypted key
         :type keyfile_json: dict or str
@@ -158,12 +161,12 @@ class Account(object):
     def encrypt(cls, private_key, password, kdf=None, iterations=None):
         """
         Creates a dictionary with an encrypted version of your private key.
-        To import this keyfile into Ethereum clients like geth and parity:
+        To import this keyfile into Platon clients like gplaton and parity:
         encode this dictionary with :func:`json.dumps` and save it to disk where your
         client keeps key files.
 
         :param private_key: The raw private key
-        :type private_key: hex str, bytes, int or :class:`eth_keys.datatypes.PrivateKey`
+        :type private_key: hex str, bytes, int or :class:`platon_keys.datatypes.PrivateKey`
         :param str password: The password which you will need to unlock the account in your client
         :param str kdf: The key derivation function to use when encrypting your private key
         :param int iterations: The work factor for the key derivation function
@@ -171,7 +174,7 @@ class Account(object):
         :rtype: dict
 
         If kdf is not set, the default key derivation function falls back to the
-        environment variable :envvar:`ETH_ACCOUNT_KDF`. If that is not set, then
+        environment variable :envvar:`platon_account_KDF`. If that is not set, then
         'scrypt' will be used as the default.
 
         .. doctest:: python
@@ -213,33 +216,22 @@ class Account(object):
         return create_keyfile_json(key_bytes, password_bytes, kdf=kdf, iterations=iterations)
 
     @combomethod
-    def privateKeyToAccount(self, private_key):
-        """
-        .. CAUTION:: Deprecated for :meth:`~eth_account.account.Account.from_key`.
-            This method will be removed in v0.5
-        """
-        warnings.warn(
-            "privateKeyToAccount is deprecated in favor of from_key",
-            category=DeprecationWarning,
-        )
-        return self.from_key(private_key)
-
-    @combomethod
-    def from_key(self, private_key):
+    def from_key(self, private_key, hrp=DEFAULT_HRP):
         r"""
         Returns a convenient object for working with the given private key.
 
         :param private_key: The raw private key
-        :type private_key: hex str, bytes, int or :class:`eth_keys.datatypes.PrivateKey`
+        :type private_key: hex str, bytes, int or :class:`platon_keys.datatypes.PrivateKey`
+        :param str hrp: HRP used to generate the bech32 address
         :return: object with methods for signing and encrypting
         :rtype: LocalAccount
 
         .. doctest:: python
 
             >>> acct = Account.from_key(
-            ... 0xb25c7db31feed9122727bf0939dc769a96564b2de4c4726d035b36ecf1e5b364)
+            ... 0xb25c7db31feed9122727bf0939dc769a96564b2de4c4726d035b36ecf1e5b364, 'lat')
             >>> acct.address
-            '0x5ce9454909639D2D17A3F753ce7d93fa0b9aB12E'
+            'lat1qtn552jgfvwwj69ar7afuulvnlg9e4vfwq7zpz5'
             >>> acct.key
             HexBytes('0xb25c7db31feed9122727bf0939dc769a96564b2de4c4726d035b36ecf1e5b364')
 
@@ -248,13 +240,14 @@ class Account(object):
             # but without the private key argument
         """
         key = self._parsePrivateKey(private_key)
-        return LocalAccount(key, self)
+        return LocalAccount(key, self, hrp)
 
     @combomethod
     def from_mnemonic(self,
                       mnemonic: str,
                       passphrase: str = "",
-                      account_path: str = ETHEREUM_DEFAULT_PATH):
+                      account_path: str = PLATON_DEFAULT_PATH,
+                      hrp: str = DEFAULT_HRP):
         """
         Generate an account from a mnemonic.
 
@@ -264,18 +257,19 @@ class Account(object):
         :param str passphrase: Optional passphrase used to encrypt the mnemonic
         :param str account_path: Specify an alternate HD path for deriving the seed using
             BIP32 HD wallet key derivation.
+        :param str hrp: HRP used to generate the bech32 address
         :return: object with methods for signing and encrypting
         :rtype: LocalAccount
 
         .. doctest:: python
 
-            >>> from eth_account import Account
+            >>> from platon_account import Account
             >>> Account.enable_unaudited_hdwallet_features()
             >>> acct = Account.from_mnemonic(
             ...  "coral allow abandon recipe top tray caught video climb similar prepare bracket "
             ...  "antenna rubber announce gauge volume hub hood burden skill immense add acid")
             >>> acct.address
-            '0x9AdA5dAD14d925f4df1378409731a9B71Bc8569d'
+            'lat1qntd9mtg5myjlfhcn0pqfwvdfkudus45an7g07k'
 
             # These methods are also available: sign_message(), sign_transaction(), encrypt()
             # They correspond to the same-named methods in Account.*
@@ -290,20 +284,21 @@ class Account(object):
         seed = seed_from_mnemonic(mnemonic, passphrase)
         private_key = key_from_seed(seed, account_path)
         key = self._parsePrivateKey(private_key)
-        return LocalAccount(key, self)
+        return LocalAccount(key, self, hrp)
 
     @combomethod
     def create_with_mnemonic(self,
                              passphrase: str = "",
                              num_words: int = 12,
                              language: str = "english",
-                             account_path: str = ETHEREUM_DEFAULT_PATH):
+                             account_path: str = PLATON_DEFAULT_PATH,
+                             hrp: str = DEFAULT_HRP):
         r"""
         Create a new private key and related mnemonic.
 
         .. CAUTION:: This feature is experimental, unaudited, and likely to change soon
 
-        Creates a new private key, and returns it as a :class:`~eth_account.local.LocalAccount`,
+        Creates a new private key, and returns it as a :class:`~platon_account.local.LocalAccount`,
         alongside the mnemonic that can used to regenerate it using any BIP39-compatible wallet.
 
         :param str passphrase: Extra passphrase to encrypt the seed phrase
@@ -312,17 +307,18 @@ class Account(object):
         :param str language: Language to use for BIP39 mnemonic seed phrase.
         :param str account_path: Specify an alternate HD path for deriving the seed using
             BIP32 HD wallet key derivation.
+        :param str hrp: HRP used to generate the bech32 address
         :returns: A tuple consisting of an object with private key and convenience methods,
                   and the mnemonic seed phrase that can be used to restore the account.
         :rtype: (LocalAccount, str)
 
         .. doctest:: python
 
-            >>> from eth_account import Account
+            >>> from platon_account import Account
             >>> Account.enable_unaudited_hdwallet_features()
             >>> acct, mnemonic = Account.create_with_mnemonic()
             >>> acct.address # doctest: +SKIP
-            '0x5ce9454909639D2D17A3F753ce7d93fa0b9aB12E'
+            'lat1qtn552jgfvwwj69ar7afuulvnlg9e4vfwq7zpz5'
             >>> acct == Account.from_mnemonic(mnemonic)
             True
 
@@ -337,7 +333,7 @@ class Account(object):
                 "`Account.enable_unaudited_hdwallet_features()` and try again."
             )
         mnemonic = generate_mnemonic(num_words, language)
-        return self.from_mnemonic(mnemonic, passphrase, account_path), mnemonic
+        return self.from_mnemonic(mnemonic, passphrase, account_path, hrp), mnemonic
 
     @combomethod
     def recover_message(self, signable_message: SignableMessage, vrs=None, signature=None):
@@ -355,15 +351,15 @@ class Account(object):
 
         .. doctest:: python
 
-            >>> from eth_account.messages import encode_defunct
-            >>> from eth_account import Account
+            >>> from platon_account.messages import encode_defunct
+            >>> from platon_account import Account
             >>> message = encode_defunct(text="I♥SF")
             >>> vrs = (
             ...   28,
             ...   '0xe6ca9bba58c88611fad66a6ce8f996908195593807c4b38bd528d2cff09d4eb3',
             ...   '0x3e5bfbbf4d3e39b1a2fd816a7680c19ebebaf3a141b239934ad43cb33fcec8ce')
             >>> Account.recover_message(message, vrs=vrs)
-            '0x5ce9454909639D2D17A3F753ce7d93fa0b9aB12E'
+            'lat1qtn552jgfvwwj69ar7afuulvnlg9e4vfwq7zpz5'
 
 
             # All of these recover calls are equivalent:
@@ -374,7 +370,7 @@ class Account(object):
             ...   '0xe6ca9bba58c88611fad66a6ce8f996908195593807c4b38bd528d2cff09d4eb3',
             ...   '0x3e5bfbbf4d3e39b1a2fd816a7680c19ebebaf3a141b239934ad43cb33fcec8ce')
             >>> Account.recover_message(message, vrs=vrs)
-            '0x5ce9454909639D2D17A3F753ce7d93fa0b9aB12E'
+            'lat1qtn552jgfvwwj69ar7afuulvnlg9e4vfwq7zpz5'
 
             >>> # Caution about this approach: likely problems if there are leading 0s
             >>> vrs = (
@@ -382,56 +378,32 @@ class Account(object):
             ...   0xe6ca9bba58c88611fad66a6ce8f996908195593807c4b38bd528d2cff09d4eb3,
             ...   0x3e5bfbbf4d3e39b1a2fd816a7680c19ebebaf3a141b239934ad43cb33fcec8ce)
             >>> Account.recover_message(message, vrs=vrs)
-            '0x5ce9454909639D2D17A3F753ce7d93fa0b9aB12E'
+            'lat1qtn552jgfvwwj69ar7afuulvnlg9e4vfwq7zpz5'
 
             >>> vrs = (
             ...   b'\x1c',
             ...   b'\xe6\xca\x9b\xbaX\xc8\x86\x11\xfa\xd6jl\xe8\xf9\x96\x90\x81\x95Y8\x07\xc4\xb3\x8b\xd5(\xd2\xcf\xf0\x9dN\xb3',  # noqa: E501
             ...   b'>[\xfb\xbfM>9\xb1\xa2\xfd\x81jv\x80\xc1\x9e\xbe\xba\xf3\xa1A\xb29\x93J\xd4<\xb3?\xce\xc8\xce')  # noqa: E501
             >>> Account.recover_message(message, vrs=vrs)
-            '0x5ce9454909639D2D17A3F753ce7d93fa0b9aB12E'
+            'lat1qtn552jgfvwwj69ar7afuulvnlg9e4vfwq7zpz5'
 
             # variations on signature
             >>> signature = '0xe6ca9bba58c88611fad66a6ce8f996908195593807c4b38bd528d2cff09d4eb33e5bfbbf4d3e39b1a2fd816a7680c19ebebaf3a141b239934ad43cb33fcec8ce1c'  # noqa: E501
             >>> Account.recover_message(message, signature=signature)
-            '0x5ce9454909639D2D17A3F753ce7d93fa0b9aB12E'
+            'lat1qtn552jgfvwwj69ar7afuulvnlg9e4vfwq7zpz5'
             >>> signature = b'\xe6\xca\x9b\xbaX\xc8\x86\x11\xfa\xd6jl\xe8\xf9\x96\x90\x81\x95Y8\x07\xc4\xb3\x8b\xd5(\xd2\xcf\xf0\x9dN\xb3>[\xfb\xbfM>9\xb1\xa2\xfd\x81jv\x80\xc1\x9e\xbe\xba\xf3\xa1A\xb29\x93J\xd4<\xb3?\xce\xc8\xce\x1c'  # noqa: E501
             >>> Account.recover_message(message, signature=signature)
-            '0x5ce9454909639D2D17A3F753ce7d93fa0b9aB12E'
+            'lat1qtn552jgfvwwj69ar7afuulvnlg9e4vfwq7zpz5'
             >>> # Caution about this approach: likely problems if there are leading 0s
             >>> signature = 0xe6ca9bba58c88611fad66a6ce8f996908195593807c4b38bd528d2cff09d4eb33e5bfbbf4d3e39b1a2fd816a7680c19ebebaf3a141b239934ad43cb33fcec8ce1c  # noqa: E501
             >>> Account.recover_message(message, signature=signature)
-            '0x5ce9454909639D2D17A3F753ce7d93fa0b9aB12E'
+            'lat1qtn552jgfvwwj69ar7afuulvnlg9e4vfwq7zpz5'
         """
         message_hash = _hash_eip191_message(signable_message)
         return self._recover_hash(message_hash, vrs, signature)
 
     @combomethod
-    def recoverHash(self, message_hash, vrs=None, signature=None):
-        """
-        Get the address of the account that signed the message with the given hash.
-        You must specify exactly one of: vrs or signature
-
-        .. CAUTION:: Deprecated for :meth:`~eth_account.account.Account.recover_message`.
-            This method might be removed as early as v0.5
-
-        :param message_hash: the hash of the message that you want to verify
-        :type message_hash: hex str or bytes or int
-        :param vrs: the three pieces generated by an elliptic curve signature
-        :type vrs: tuple(v, r, s), each element is hex str, bytes or int
-        :param signature: signature bytes concatenated as r+s+v
-        :type signature: hex str or bytes or int
-        :returns: address of signer, hex-encoded & checksummed
-        :rtype: str
-        """
-        warnings.warn(
-            "recoverHash is deprecated in favor of recover_message",
-            category=DeprecationWarning,
-        )
-        return self._recover_hash(message_hash, vrs, signature)
-
-    @combomethod
-    def _recover_hash(self, message_hash, vrs=None, signature=None):
+    def _recover_hash(self, message_hash, vrs=None, signature=None, hrp=DEFAULT_HRP):
         hash_bytes = HexBytes(message_hash)
         if len(hash_bytes) != 32:
             raise ValueError("The message hash must be exactly 32-bytes")
@@ -446,27 +418,16 @@ class Account(object):
         else:
             raise TypeError("You must supply the vrs tuple or the signature bytes")
         pubkey = signature_obj.recover_public_key_from_msg_hash(hash_bytes)
-        return pubkey.to_checksum_address()
+        return pubkey.to_bech32_address(hrp)
 
     @combomethod
-    def recoverTransaction(self, serialized_transaction):
-        """
-        .. CAUTION:: Deprecated for :meth:`~eth_account.account.Account.recover_transaction`.
-            This method will be removed in v0.5
-        """
-        warnings.warn(
-            "recoverTransaction is deprecated in favor of recover_transaction",
-            category=DeprecationWarning,
-        )
-        return self.recover_transaction(serialized_transaction)
-
-    @combomethod
-    def recover_transaction(self, serialized_transaction):
+    def recover_transaction(self, serialized_transaction, hrp=DEFAULT_HRP):
         """
         Get the address of the account that signed this transaction.
 
         :param serialized_transaction: the complete signed transaction
         :type serialized_transaction: hex str, bytes or int
+        :param str hrp: HRP used to generate the bech32 address
         :returns: address of signer, hex-encoded & checksummed
         :rtype: str
 
@@ -474,7 +435,7 @@ class Account(object):
 
             >>> raw_transaction = '0xf86a8086d55698372431831e848094f0109fc8df283027b6285cc889f5aa624eac1f55843b9aca008025a009ebb6ca057a0535d6186462bc0b465b561c94a295bdb0621fc19208ab149a9ca0440ffd775ce91a833ab410777204d5341a6f9fa91216a6f3ee2c051fea6a0428'  # noqa: E501
             >>> Account.recover_transaction(raw_transaction)
-            '0x2c7536E3605D9C16a7a3D7b1898e529396a65c23'
+            'lat1q936ndcmqtkwpdfar67ccnrjjjwt2vhpreyjucx'
         """
         txn_bytes = HexBytes(serialized_transaction)
         if len(txn_bytes) > 0 and txn_bytes[0] <= 0x7f:
@@ -486,27 +447,16 @@ class Account(object):
 
         txn = Transaction.from_bytes(txn_bytes)
         msg_hash = hash_of_signed_transaction(txn)
-        return self._recover_hash(msg_hash, vrs=vrs_from(txn))
-
-    def setKeyBackend(self, backend):
-        """
-        .. CAUTION:: Deprecated for :meth:`~eth_account.account.Account.set_key_backend`.
-            This method will be removed in v0.5
-        """
-        warnings.warn(
-            "setKeyBackend is deprecated in favor of set_key_backend",
-            category=DeprecationWarning,
-        )
-        self.set_key_backend(backend)
+        return self._recover_hash(msg_hash, vrs=vrs_from(txn), hrp=hrp)
 
     def set_key_backend(self, backend):
         """
-        Change the backend used by the underlying eth-keys library.
+        Change the backend used by the underlying platon_keys library.
 
         *(The default is fine for most users)*
 
         :param backend: any backend that works in
-            `eth_keys.KeyApi(backend) <https://github.com/ethereum/eth-keys/#keyapibackendnone>`_
+            `platon_keys.KeyApi(backend) <https://github.com/platonnetwork/platon_keys/#keyapibackendnone>`_
 
         """
         self._keys = KeyAPI(backend)
@@ -519,24 +469,24 @@ class Account(object):
         This API supports any messaging format that will encode to EIP-191_ messages.
 
         If you would like historical compatibility with
-        :meth:`w3.eth.sign() <web3.eth.Eth.sign>`
-        you can use :meth:`~eth_account.messages.encode_defunct`.
+        :meth:`w3.platon.sign() <web3.platon.Platon.sign>`
+        you can use :meth:`~platon_account.messages.encode_defunct`.
 
         Other options are the "validator", or "structured data" standards. (Both of these
         are in *DRAFT* status currently, so be aware that the implementation is not
         guaranteed to be stable). You can import all supported message encoders in
-        ``eth_account.messages``.
+        ``platon_account.messages``.
 
         :param signable_message: the encoded message for signing
         :param private_key: the key to sign the message with
-        :type private_key: hex str, bytes, int or :class:`eth_keys.datatypes.PrivateKey`
+        :type private_key: hex str, bytes, int or :class:`platon_keys.datatypes.PrivateKey`
         :returns: Various details about the signature - most importantly the fields: v, r, and s
-        :rtype: ~eth_account.datastructures.SignedMessage
+        :rtype: ~platon_account.datastructures.SignedMessage
 
         .. doctest:: python
 
             >>> msg = "I♥SF"
-            >>> from eth_account.messages import encode_defunct
+            >>> from platon_account.messages import encode_defunct
             >>> msghash = encode_defunct(text=msg)
             >>> msghash
             SignableMessage(version=b'E',
@@ -551,39 +501,8 @@ class Account(object):
              v=28,
              signature=HexBytes('0xe6ca9bba58c88611fad66a6ce8f996908195593807c4b38bd528d2cff09d4eb33e5bfbbf4d3e39b1a2fd816a7680c19ebebaf3a141b239934ad43cb33fcec8ce1c'))
 
-
-
-        .. _EIP-191: https://eips.ethereum.org/EIPS/eip-191
         """
         message_hash = _hash_eip191_message(signable_message)
-        return self._sign_hash(message_hash, private_key)
-
-    @combomethod
-    def signHash(self, message_hash, private_key):
-        """
-        Sign the provided hash.
-
-        .. WARNING:: *Never* sign a hash that you didn't generate,
-            it can be an arbitrary transaction. For example, it might
-            send all of your account's ether to an attacker.
-            Instead, prefer :meth:`~eth_account.account.Account.sign_message`,
-            which cannot accidentally sign a transaction.
-
-        .. CAUTION:: Deprecated for :meth:`~eth_account.account.Account.sign_message`.
-            This method will be removed in v0.6
-
-        :param message_hash: the 32-byte message hash to be signed
-        :type message_hash: hex str, bytes or int
-        :param private_key: the key to sign the message with
-        :type private_key: hex str, bytes, int or :class:`eth_keys.datatypes.PrivateKey`
-        :returns: Various details about the signature - most
-          importantly the fields: v, r, and s
-        :rtype: ~eth_account.datastructures.SignedMessage
-        """
-        warnings.warn(
-            "signHash is deprecated in favor of sign_message",
-            category=DeprecationWarning,
-        )
         return self._sign_hash(message_hash, private_key)
 
     @combomethod
@@ -594,34 +513,22 @@ class Account(object):
 
         key = self._parsePrivateKey(private_key)
 
-        (v, r, s, eth_signature_bytes) = sign_message_hash(key, msg_hash_bytes)
+        (v, r, s, platon_signature_bytes) = sign_message_hash(key, msg_hash_bytes)
         return SignedMessage(
             messageHash=msg_hash_bytes,
             r=r,
             s=s,
             v=v,
-            signature=HexBytes(eth_signature_bytes),
+            signature=HexBytes(platon_signature_bytes),
         )
 
     @combomethod
-    def signTransaction(self, transaction_dict, private_key):
-        """
-        .. CAUTION:: Deprecated for :meth:`~eth_account.account.Account.sign_transaction`.
-            This method will be removed in v0.5
-        """
-        warnings.warn(
-            "signTransaction is deprecated in favor of sign_transaction",
-            category=DeprecationWarning,
-        )
-        return self.sign_transaction(transaction_dict, private_key)
-
-    @combomethod
-    def sign_transaction(self, transaction_dict, private_key):
+    def sign_transaction(self, transaction_dict, private_key, hrp=DEFAULT_HRP):
         """
         Sign a transaction using a local private key.
 
         It produces signature details and the hex-encoded transaction suitable for broadcast using
-        :meth:`w3.eth.sendRawTransaction() <web3.eth.Eth.sendRawTransaction>`.
+        :meth:`w3.platon.sendRawTransaction() <web3.platon.Platon.sendRawTransaction>`.
 
         To create the transaction dict that calls a contract, use contract object:
         `my_contract.functions.my_function().buildTransaction()
@@ -630,7 +537,8 @@ class Account(object):
         :param dict transaction_dict: the transaction with keys:
           nonce, chainId, to, data, value, gas, and gasPrice.
         :param private_key: the private key to sign the data with
-        :type private_key: hex str, bytes, int or :class:`eth_keys.datatypes.PrivateKey`
+        :type private_key: hex str, bytes, int or :class:`platon_keys.datatypes.PrivateKey`
+        :param str hrp: HRP used to generate the bech32 address
         :returns: Various details about the signature - most
           importantly the fields: v, r, and s
         :rtype: AttributeDict
@@ -645,7 +553,7 @@ class Account(object):
                     "maxPriorityFeePerGas": 2000000000,
                     "data": "0x616263646566",
                     "nonce": 34,
-                    "to": "0x09616C3d61b3331fc4109a9E41a8BDB7d9776609",
+                    "to": "lat1qp9skc0tpkve3l3qsn20yr29aklvhwesf274lcs",
                     "value": "0x5af3107a4000",
                     "accessList": (
                         (
@@ -655,7 +563,7 @@ class Account(object):
                             )
                         ),
                     ),
-                    "chainId": 1900,
+                    "chainId": 101,
                 }
             >>> key = '0x4c0883a69102937d6231471b5dbb6204fe5129617082792ae468d01a3f362318'
             >>> signed = Account.sign_transaction(dynamic_fee_transaction, key)
@@ -664,14 +572,14 @@ class Account(object):
              'rawTransaction': HexBytes('0x02f8b282076c2284773594008477359400830186a09409616c3d61b3331fc4109a9e41a8bdb7d9776609865af3107a400086616263646566f838f7940000000000000000000000000000000000000001e1a0010000000000000000000000000000000000000000000000000000000000000080a0f366b34a5c206859b9778b4c909207e53443cca9e0b82e0b94bc4b47e6434d3da04a731eda413a944d4ea2d2236671e586e57388d0e9d40db53044ae4089f2aec8'),  # noqa: E501
              's': 33674551144139401179914073499472892825822542092106065756005379322302694600392,
              'v': 0}
-            >>> w3.eth.sendRawTransaction(signed.rawTransaction)
+            >>> w3.platon.sendRawTransaction(signed.rawTransaction)
 
         .. code-block:: python
 
             >>> # legacy transaction (less efficient than EIP-1559 dynamic fee txn)
             >>> legacy_transaction = {
                     # Note that the address must be in checksum format or native bytes:
-                    'to': '0xF0109fC8DF283027b6285cc889F5aA624EaC1F55',
+                    'to': 'lat1q7qgfljxl9qcz0d3gtnygnad2vf82c864uyjxq6',
                     'value': 1000000000,
                     'gas': 2000000,
                     'gasPrice': 234567897654321,
@@ -685,7 +593,7 @@ class Account(object):
              'rawTransaction': HexBytes('0xf86a8086d55698372431831e848094f0109fc8df283027b6285cc889f5aa624eac1f55843b9aca008025a009ebb6ca057a0535d6186462bc0b465b561c94a295bdb0621fc19208ab149a9ca0440ffd775ce91a833ab410777204d5341a6f9fa91216a6f3ee2c051fea6a0428'),  # noqa: E501
              's': 30785525769477805655994251009256770582792548537338581640010273753578382951464,
              'v': 37}
-            >>> w3.eth.sendRawTransaction(signed.rawTransaction)
+            >>> w3.platon.sendRawTransaction(signed.rawTransaction)
 
         .. code-block:: python
 
@@ -694,7 +602,7 @@ class Account(object):
                     "gasPrice": 1000000000,
                     "data": "0x616263646566",
                     "nonce": 34,
-                    "to": "0x09616C3d61b3331fc4109a9E41a8BDB7d9776609",
+                    "to": "lat1qp9skc0tpkve3l3qsn20yr29aklvhwesf274lcs",
                     "value": "0x5af3107a4000",
                     "type": 1,
                     "accessList": (
@@ -714,12 +622,12 @@ class Account(object):
              'rawTransaction': HexBytes('0x01f8ad82076c22843b9aca00830186a09409616c3d61b3331fc4109a9e41a8bdb7d9776609865af3107a400086616263646566f838f7940000000000000000000000000000000000000001e1a0010000000000000000000000000000000000000000000000000000000000000080a0ea38506c4afe4bb402e030877fbe1011fa1da47aabcf215db8da8fee5d3af086a051e9af653b8eb98e74e894a766cf88904dbdb10b0bc1fbd12f18f661fa2797a4'),  # noqa: E501
              's': 37050226636175381535892585331727388340134760347943439553552848647212419749796,
              'v': 0}
-            >>> w3.eth.sendRawTransaction(signed.rawTransaction)
+            >>> w3.platon.sendRawTransaction(signed.rawTransaction)
         """
         if not isinstance(transaction_dict, Mapping):
             raise TypeError("transaction_dict must be dict-like, got %r" % transaction_dict)
 
-        account = self.from_key(private_key)
+        account = self.from_key(private_key, hrp=hrp)
 
         # allow from field, *only* if it matches the private key
         if 'from' in transaction_dict:
@@ -753,14 +661,14 @@ class Account(object):
     @combomethod
     def _parsePrivateKey(self, key):
         """
-        Generate a :class:`eth_keys.datatypes.PrivateKey` from the provided key.
+        Generate a :class:`platon_keys.datatypes.PrivateKey` from the provided key.
 
-        If the key is already of type :class:`eth_keys.datatypes.PrivateKey`, return the key.
+        If the key is already of type :class:`platon_keys.datatypes.PrivateKey`, return the key.
 
-        :param key: the private key from which a :class:`eth_keys.datatypes.PrivateKey`
+        :param key: the private key from which a :class:`platon_keys.datatypes.PrivateKey`
                     will be generated
-        :type key: hex str, bytes, int or :class:`eth_keys.datatypes.PrivateKey`
-        :returns: the provided key represented as a :class:`eth_keys.datatypes.PrivateKey`
+        :type key: hex str, bytes, int or :class:`platon_keys.datatypes.PrivateKey`
+        :returns: the provided key represented as a :class:`platon_keys.datatypes.PrivateKey`
         """
         if isinstance(key, self._keys.PrivateKey):
             return key

@@ -1,19 +1,19 @@
-eth\_account
+platon\_account
 ====================
 
 Account
 ----------------------------
 
-.. automodule:: eth_account.account
+.. automodule:: platon_account.account
     :members:
     :undoc-members:
 
-See :doc:`eth_account.signers` for alternative signers.
+See :doc:`platon_account.signers` for alternative signers.
 
 SignedTransaction & SignedMessage
 -----------------------------------
 
-.. automodule:: eth_account.datastructures
+.. automodule:: platon_account.datastructures
     :members:
     :undoc-members:
     :show-inheritance:
@@ -21,7 +21,7 @@ SignedTransaction & SignedMessage
 Messages
 ---------------------------
 
-.. automodule:: eth_account.messages
+.. automodule:: platon_account.messages
     :members:
     :undoc-members:
     :show-inheritance:

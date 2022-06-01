@@ -1,4 +1,4 @@
-from eth_utils import (
+from platon_utils import (
     ValidationError,
 )
 
@@ -9,7 +9,7 @@ from .mnemonic import (
     Mnemonic,
 )
 
-ETHEREUM_DEFAULT_PATH = "m/44'/60'/0'/0/0"
+PLATON_DEFAULT_PATH = "m/44'/60'/0'/0/0"
 
 
 def generate_mnemonic(num_words: int, lang: str) -> str:

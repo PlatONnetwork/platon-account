@@ -5,10 +5,10 @@ from typing import (
 )
 import unicodedata
 
-from eth_keys import (
+from platon_keys import (
     keys,
 )
-from eth_utils import (
+from platon_utils import (
     ValidationError,
 )
 from hexbytes import (

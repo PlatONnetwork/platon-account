@@ -57,7 +57,7 @@ switch(options.language) {
         wordlist = ethers.wordlists.en;
 }
 
-// If specified, use the given path, else default to Ethereum
+// If specified, use the given path, else default to Platon
 const path = options.path ? options.path : "m/44'/60'/0'/0/0";
 
 const account = ethers.Wallet.fromMnemonic(

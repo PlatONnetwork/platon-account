@@ -1,4 +1,4 @@
 
 
 def test_import():
-    import eth_account  # noqa: F401
+    import platon_account  # noqa: F401

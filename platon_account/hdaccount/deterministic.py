@@ -45,7 +45,7 @@ from typing import (
     Union,
 )
 
-from eth_utils import (
+from platon_utils import (
     ValidationError,
     to_int,
 )

@@ -16,13 +16,13 @@ from cytoolz import (
     partial,
     pipe,
 )
-from eth_rlp import (
+from platon_rlp import (
     HashableRLP,
 )
-from eth_utils import (
+from platon_utils import (
     keccak,
 )
-from eth_utils.curried import (
+from platon_utils.curried import (
     apply_formatter_to_array,
     apply_formatters_to_dict,
     apply_formatters_to_sequence,
@@ -350,6 +350,7 @@ class DynamicFeeTransaction(_TypedTransactionImplementation):
     # This is the second transaction to implement the EIP-2718 typed transaction.
     transaction_type = 2  # '0x02'
 
+    # todo: 检查to地址
     unsigned_transaction_fields = (
         ('chainId', big_endian_int),
         ('nonce', big_endian_int),

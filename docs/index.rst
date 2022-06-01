@@ -1,7 +1,7 @@
-eth-account
+platon-account
 ==============================
 
-Sign Ethereum transactions and messages with local private keys
+Sign Platon transactions and messages with local private keys
 
 Contents
 --------
@@ -9,8 +9,8 @@ Contents
 .. toctree::
     :maxdepth: 3
 
-    eth_account
-    eth_account.signers
+    platon_account
+    platon_account.signers
     release_notes
 
 

@@ -31,7 +31,7 @@ lint:
 	tox -elint
 
 lint-roll:
-	isort --recursive eth_account tests
+	isort --recursive platon_account tests
 	$(MAKE) lint
 
 test:

@@ -1,11 +1,11 @@
 from cytoolz import (
     identity,
 )
-from eth_utils import (
-    is_binary_address,
-    is_checksum_address,
+from platon_utils import (
+    is_bech32_address,
+    to_canonical_address,
 )
-from eth_utils.curried import (
+from platon_utils.curried import (
     apply_one_of_formatters,
     hexstr_if_str,
     is_0x_prefixed,
@@ -26,9 +26,7 @@ def is_none(val):
 
 
 def is_valid_address(value):
-    if is_binary_address(value):
-        return True
-    elif is_checksum_address(value):
+    if is_bech32_address(value):
         return True
     else:
         return False
@@ -43,7 +41,7 @@ def is_int_or_prefixed_hexstr(val):
         return False
 
 
-def is_empty_or_checksum_address(val):
+def is_empty_or_bech32_address(val):
     if val in VALID_EMPTY_ADDRESSES:
         return True
     else:
@@ -73,7 +71,7 @@ LEGACY_TRANSACTION_FORMATTERS = {
     'gasPrice': hexstr_if_str(to_int),
     'gas': hexstr_if_str(to_int),
     'to': apply_one_of_formatters((
-        (is_string, hexstr_if_str(to_bytes)),
+        (is_string, to_bytes),
         (is_bytes, identity),
         (is_none, lambda val: b''),
     )),
@@ -88,7 +86,7 @@ LEGACY_TRANSACTION_VALID_VALUES = {
     'nonce': is_int_or_prefixed_hexstr,
     'gasPrice': is_int_or_prefixed_hexstr,
     'gas': is_int_or_prefixed_hexstr,
-    'to': is_empty_or_checksum_address,
+    'to': is_empty_or_bech32_address,
     'value': is_int_or_prefixed_hexstr,
     'data': lambda val: isinstance(val, (int, str, bytes, bytearray)),
     'chainId': lambda val: val is None or is_int_or_prefixed_hexstr(val),

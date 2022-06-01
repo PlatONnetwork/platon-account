@@ -2,10 +2,10 @@ import json
 import pytest
 import re
 
-from eth_abi.exceptions import (
+from platon_abi.exceptions import (
     ABITypeError,
 )
-from eth_utils import (
+from platon_utils import (
     ValidationError,
     keccak,
 )
@@ -13,10 +13,10 @@ from hexbytes import (
     HexBytes,
 )
 
-from eth_account import (
+from platon_account import (
     Account,
 )
-from eth_account._utils.structured_data.hashing import (
+from platon_account._utils.structured_data.hashing import (
     encode_data,
     encode_struct,
     encode_type,
@@ -27,10 +27,10 @@ from eth_account._utils.structured_data.hashing import (
     hash_struct_type,
     load_and_validate_structured_message,
 )
-from eth_account._utils.structured_data.validation import (
+from platon_account._utils.structured_data.validation import (
     TYPE_REGEX,
 )
-from eth_account.messages import (
+from platon_account.messages import (
     _hash_eip191_message,
     encode_structured_data,
 )
@@ -164,7 +164,7 @@ def test_signature_verification(message_encodings):
 def test_signature_variables(message_encodings):
     # Check that the signature of typed message is the same as that
     # mentioned in the EIP. The link is as follows
-    # https://github.com/ethereum/EIPs/blob/master/assets/eip-712/Example.js
+    # https://github.com/platonnetwork/EIPs/blob/master/assets/eip-712/Example.js
     structured_msg = encode_structured_data(**message_encodings)
     privateKey = keccak(text="cow")
     acc = Account.from_key(privateKey)

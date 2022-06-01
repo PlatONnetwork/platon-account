@@ -1,6 +1,6 @@
 import warnings
 
-from eth_account.signers.base import (
+from platon_account.signers.base import (
     BaseAccount,
 )
 
@@ -25,16 +25,16 @@ class LocalAccount(BaseAccount):
         >>> bytes(my_local_account) # doctest: +SKIP
         b"\\x01\\x23..."
     """
-    def __init__(self, key, account):
+    def __init__(self, key, account, hrp):
         """
         Initialize a new account with the the given private key.
 
-        :param eth_keys.PrivateKey key: to prefill in private key execution
-        :param ~eth_account.account.Account account: the key-unaware management API
+        :param platon_keys.PrivateKey key: to prefill in private key execution
+        :param ~platon_account.account.Account account: the key-unaware management API
         """
         self._publicapi = account
 
-        self._address = key.public_key.to_checksum_address()
+        self._address = key.public_key.to_bech32_address(hrp)
 
         key_raw = key.to_bytes()
         self._private_key = key_raw
@@ -48,7 +48,7 @@ class LocalAccount(BaseAccount):
     @property
     def privateKey(self):
         """
-        .. CAUTION:: Deprecated for :meth:`~eth_account.signers.local.LocalAccount.key`.
+        .. CAUTION:: Deprecated for :meth:`~platon_account.signers.local.LocalAccount.key`.
             This attribute will be removed in v0.5
         """
         warnings.warn(
@@ -69,7 +69,7 @@ class LocalAccount(BaseAccount):
         Generate a string with the encrypted key.
 
         This uses the same structure as in
-        :meth:`~eth_account.account.Account.encrypt`, but without a private key argument.
+        :meth:`~platon_account.account.Account.encrypt`, but without a private key argument.
         """
         return self._publicapi.encrypt(self.key, password, kdf=kdf, iterations=iterations)
 
@@ -84,7 +84,7 @@ class LocalAccount(BaseAccount):
         Generate a string with the encrypted key.
 
         This uses the same structure as in
-        :meth:`~eth_account.account.Account.sign_message`, but without a private key argument.
+        :meth:`~platon_account.account.Account.sign_message`, but without a private key argument.
         """
         return self._publicapi.sign_message(signable_message, private_key=self.key)
 

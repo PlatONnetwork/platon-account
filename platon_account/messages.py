@@ -7,11 +7,11 @@ from typing import (
     Union,
 )
 
-from eth_typing import (
+from platon_typing import (
     Address,
     Hash32,
 )
-from eth_utils.curried import (
+from platon_utils.curried import (
     ValidationError,
     keccak,
     text_if_str,
@@ -23,12 +23,12 @@ from hexbytes import (
     HexBytes,
 )
 
-from eth_account._utils.structured_data.hashing import (
+from platon_account._utils.structured_data.hashing import (
     hash_domain,
     hash_message as hash_eip712_message,
     load_and_validate_structured_message,
 )
-from eth_account._utils.validation import (
+from platon_account._utils.validation import (
     is_valid_address,
 )
 
@@ -52,7 +52,7 @@ class SignableMessage(NamedTuple):
         - :meth:`encode_intended_validator`
         - :meth:`encode_structured_data`
 
-    .. _EIP-191: https://eips.ethereum.org/EIPS/eip-191
+    .. _EIP-191: https://eips.platon.org/EIPS/eip-191
     """
     version: bytes  # must be length 1
     header: bytes  # aka "version specific data"
@@ -95,7 +95,7 @@ def encode_intended_validator(
     :param str text: the message as a series of unicode characters (a normal Py3 str)
     :returns: The EIP-191 encoded message, ready for signing
 
-    .. _EIP-191: https://eips.ethereum.org/EIPS/eip-191
+    .. _EIP-191: https://eips.platon.org/EIPS/eip-191
     """
     if not is_valid_address(validator_address):
         raise ValidationError(
@@ -140,7 +140,7 @@ def encode_structured_data(
     :param text: the message as a series of unicode characters (a normal Py3 str)
     :returns: The EIP-191 encoded message, ready for signing
 
-    .. _EIP-712: https://eips.ethereum.org/EIPS/eip-712
+    .. _EIP-712: https://eips.platon.org/EIPS/eip-712
     """
     if isinstance(primitive, Mapping):
         message_string = json.dumps(primitive)
@@ -163,7 +163,7 @@ def encode_defunct(
     Encode a message for signing, using an old, unrecommended approach.
 
     Only use this method if you must have compatibility with
-    :meth:`w3.eth.sign() <web3.eth.Eth.sign>`.
+    :meth:`w3.platon.sign() <web3.platon.Platon.sign>`.
 
     EIP-191 defines this as "version ``E``".
 
@@ -183,8 +183,8 @@ def encode_defunct(
 
     .. doctest:: python
 
-        >>> from eth_account.messages import encode_defunct
-        >>> from eth_utils.curried import to_hex, to_bytes
+        >>> from platon_account.messages import encode_defunct
+        >>> from platon_utils.curried import to_hex, to_bytes
 
         >>> message_text = "I♥SF"
         >>> encode_defunct(text=message_text)
@@ -224,7 +224,7 @@ def defunct_hash_message(
     """
     Convert the provided message into a message hash, to be signed.
 
-    .. CAUTION:: Intented for use with the deprecated :meth:`eth_account.account.Account.signHash`.
+    .. CAUTION:: Intented for use with the deprecated :meth:`platon_account.account.Account.signHash`.
         This is for backwards compatibility only. All new implementations
         should use :meth:`encode_defunct` instead.
 

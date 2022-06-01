@@ -6,10 +6,10 @@ from hypothesis import (
 import pytest
 import subprocess
 
-from eth_account import (
+from platon_account import (
     Account,
 )
-from eth_account.hdaccount.mnemonic import (
+from platon_account.hdaccount.mnemonic import (
     VALID_ENTROPY_SIZES,
     Mnemonic,
 )

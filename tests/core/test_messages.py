@@ -1,10 +1,10 @@
 import pytest
 
-from eth_utils import (
+from platon_utils import (
     ValidationError,
 )
 
-from eth_account.messages import (
+from platon_account.messages import (
     SignableMessage,
     encode_intended_validator,
 )

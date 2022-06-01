@@ -38,7 +38,7 @@ from bitarray.util import (
     ba2int,
     int2ba,
 )
-from eth_utils import (
+from platon_utils import (
     ValidationError,
 )
 
