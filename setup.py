@@ -60,16 +60,16 @@ setup(
         "hdaccount/wordlist/*.txt",
     ]},
     install_requires=[
-        "bitarray>=1.2.1,<1.3.0",
+        "bitarray>=2.4.0",
         "platon-abi>=1.2.0",
         "platon-keyfile>=1.2.0",
         "platon-keys>=1.2.0",
         "platon-rlp>=1.2.0",
         "platon-utils>=1.2.0",
-        "hexbytes>=0.1.0,<1",
-        "rlp>=1.0.0,<3"
+        "hexbytes>=0.1.0",
+        "rlp>=1.0.0"
     ],
-    python_requires='>=3.6, <4',
+    python_requires='>=3.7, <4',
     extras_require=extras_require,
     py_modules=['platon_account'],
     license="MIT",
@@ -84,8 +84,10 @@ setup(
         'Operating System :: MacOS',
         'Operating System :: POSIX',
         'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: 3.8',
+        'Programming Language :: Python :: 3.9',
+        'Programming Language :: Python :: 3.10',
+        'Programming Language :: Python :: 3.11',
     ],
 )
